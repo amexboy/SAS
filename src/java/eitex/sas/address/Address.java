@@ -138,16 +138,24 @@ public class Address extends ModuleTemplate{
         this.setValid(true);
         return true;
     }
-    
-    
+   
+    @Override
+    public boolean delete(String userName) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
 
+    @Override
+    public boolean recover(String userName) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+    
     //<editor-fold defaultstate="collapsed" desc="Setter & Getter">
     public int getId() {
         return this.id;
     }
     
     public void setId(int id) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        this.id = id;
     }
     
     public String getOfficeBuilding() {
@@ -200,6 +208,7 @@ public class Address extends ModuleTemplate{
         this.setValidated(false);;
     }
 //</editor-fold>
+
 
 
 }

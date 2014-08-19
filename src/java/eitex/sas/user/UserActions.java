@@ -149,7 +149,7 @@ public class UserActions extends HttpServlet {
         ArrayList<User> usersFromModel = User.createUserFormJSON(model);
         for (User u : usersFromModel) {
             try {
-                u.setIsNew(false);
+                u.setNew(false);
                 u.setModified(true);
                 if (u.validate()) {
                     u.save(loggedInUser);
@@ -204,7 +204,7 @@ public class UserActions extends HttpServlet {
         JsonArrayBuilder values = Json.createArrayBuilder();
         ArrayList<User> userFromModel = User.createUserFormJSON(model);
         for (User u : userFromModel) {
-            u.setIsNew(false);
+            u.setNew(false);
             if (u.delete(loggedInUser)) {
                 values.add(Json.createObjectBuilder()
                         .add("error", false)
@@ -242,7 +242,7 @@ public class UserActions extends HttpServlet {
         JsonArrayBuilder values = Json.createArrayBuilder();
         try {
             User u = new User(model);
-            u.setIsNew(false);
+            u.setNew(false);
             if (u.recover(loggedInUser)) {
                 values.add(Json.createObjectBuilder()
                         .add("error", false)

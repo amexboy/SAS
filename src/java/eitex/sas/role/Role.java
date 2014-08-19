@@ -4,6 +4,7 @@ import eitex.sas.role.*;
 import eitex.sas.address.Address;
 import eitex.sas.coc.CoC;
 import eitex.sas.common.ExceptionLogger;
+import eitex.sas.common.ModuleTemplate;
 import eitex.sas.common.NotFoundException;
 import eitex.sas.user.User;
 import java.io.StringReader;
@@ -19,35 +20,11 @@ import javax.json.stream.JsonParser;
  *
  * @author Amanu
  */
-public class Role {
+public class Role extends ModuleTemplate{
 
     private String roleCode;
     private String roleName;
     private String roleDisc;
-
-    /**
-     * Indicates if the object is populated from database or from user input.
-     * isNew becomes true if the object is populated from user input.
-     */
-    private boolean isNew;
-    /**
-     * Indicates if the fields of the object are changed using setter methods.
-     * Modified true if one of the setter methods is called. The field doesn't
-     * matter if the isNew field is set to true;
-     */
-    private boolean modified;
-
-    /**
-     * Indicates if the object is validated. validated becomes true if the
-     * validate() method is called.
-     */
-    private boolean validated = false;
-    /**
-     * Indicates if the current object is valid or not. valid is set to true if
-     * the objects fields are all valid. The value of this field does not matter
-     * if validated is false;
-     */
-    private boolean valid = false;
 
     public Role() {
     }
@@ -64,7 +41,7 @@ public class Role {
         this.roleCode = roleCode;
         this.roleName = roleName;
         this.roleDisc = roleDisc;
-        this.isNew = true;
+        this.setNew(true);
     }
 
     /**
@@ -80,28 +57,23 @@ public class Role {
         Role un = RoleModel.getRole(roleCode);
         this.roleName = un.roleName;
         this.roleDisc = un.roleDisc;
-        this.isNew = false;
+        this.setNew(false);
     }
 
     /**
-     * Saves the changes of this object to database. This method either adds a
-     * new entry in the data base or updates the existing according to isNew
-     * field. If the object is validated and is valid the save is executed right
-     * away. Else the validate() method is called and execution continues goes
-     * accordingly.
-     *
      * @param userName, the user that initiated the action
      * @throws eitex.sas.role.RoleFieldException
      * @return
      */
+    @Override
     public boolean save(String userName) throws RoleFieldException {
         if (!isValidated()) {
             this.validate();
         }
         if (this.isValid()) {
-            if (isNew) {
+            if (isNew()) {
                 return RoleModel.saveToDataBase(this, userName);
-            } else if (modified) {
+            } else if (isModified()) {
                 return RoleModel.updateDataBase(this, userName);
             }
         }
@@ -109,19 +81,13 @@ public class Role {
     }
 
     /**
-     * Validates the objects fields. It performs a check to all fields. this
-     * method sets validated fields to true. If there is a wrong field
-     * eitex.sas.role.RoleFieldException is thrown with set of boolean
-     * fields to indicate which field contains error. roleCode, and
-     * roleName are required and are always validated. Other fields are
-     * validated only if they exist.
-     *
      * @throws eitex.sas.role.RoleFieldException
      * @return
      */
+    @Override
     public boolean validate() throws RoleFieldException {
-        this.validated = true;
-        this.valid = false;
+        this.setValidated(true);
+        this.setValid(false);
         boolean errorFound = false;
 
         RoleFieldException ex = new RoleFieldException();
@@ -147,54 +113,24 @@ public class Role {
             throw ex;
         }
 
-        this.valid = true;
+        this.setValid(true);
         return true;
     }
 
-    /**
-     * Indicates if the current object is valid or not. isValid() returns to
-     * true if the objects fields are all valid. The value returned does not
-     * matter if isValidated() returned false;
-     *
-     * @return
-     */
-    public boolean isValid() {
-        return this.valid;
-    }
-
-    /**
-     * Indicates if the object is validated. isValidated() returns true if the
-     * validate() method is called.
-     *
-     * @return
-     */
-    public boolean isValidated() {
-        return this.validated;
-    }
-
-    /**
-     * Delete the role in the database that this object represents.
-     *
-     * @param userName
-     * @return
-     */
+    
+    @Override
     public boolean delete(String userName) {
-        if (this.isNew || !this.modified) {
+        if (this.isNew() || !this.isModified()) {
             return false;
         } else {
             return RoleModel.delete(this, userName);
         }
     }
 
-    /**
-     * Recover the coc in the database that this object represents. This method
-     * is used to recover entries of the database after deletion.
-     *
-     * @param userName
-     * @return
-     */
+    
+    @Override
     public boolean recover(String userName) {
-        if (this.isNew) {
+        if (this.isNew()) {
             return false;
         } else {
             return RoleModel.recover(this, userName);
@@ -281,8 +217,8 @@ public class Role {
 
     public void setRoleName(String roleName) {
         this.roleName = roleName;
-        this.modified = true;
-        this.validated = false;
+        this.setModified(true);
+        this.setValidated(false);
     }
 
     public String getRoleDisc() {
@@ -291,25 +227,9 @@ public class Role {
 
     public void setRoleDisc(String roleDisc) {
         this.roleDisc = roleDisc;
-        this.modified = true;
-        this.validated = false;
+        this.setModified(true);
+        this.setValidated(false);
     }
-    public boolean isIsNew() {
-        return isNew;
-    }
-
-    public void setIsNew(boolean isNew) {
-        this.isNew = isNew;
-    }
-
-    public boolean isModified() {
-        return modified;
-    }
-
-    public void setModified(boolean modified) {
-        this.modified = modified;
-    }
-
     
 //</editor-fold>
 

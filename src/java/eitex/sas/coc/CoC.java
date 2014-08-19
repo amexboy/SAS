@@ -163,15 +163,15 @@ public class CoC extends ModuleTemplate{
     }
 
     /**
-     *
-     * @return
+     * @return  all the entities of this class that are registered in the database.
      */
     public static java.util.ArrayList<CoC> getAll() {
         return CoCModel.getAllCoCs(true);
         
-    }/**
+    }
+    /**
      *
-     * @return
+     * @return all the entities of this class that are marked as deleted in the database.
      */
     public static java.util.ArrayList<CoC> getAllDeleted() {
         return CoCModel.getAllCoCs(false);

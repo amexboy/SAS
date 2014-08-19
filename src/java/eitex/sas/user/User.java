@@ -5,6 +5,7 @@ import eitex.sas.address.AddressFieldException;
 import eitex.sas.coc.CoC;
 import eitex.sas.coc.CoCFieldException;
 import eitex.sas.common.ExceptionLogger;
+import eitex.sas.common.ModuleTemplate;
 import eitex.sas.common.NotFoundException;
 import eitex.sas.role.Role;
 import java.io.StringReader;
@@ -15,7 +16,7 @@ import javax.json.Json;
 import javax.json.stream.JsonParser;
 import javax.json.stream.JsonParser.Event;
 
-public class User {
+public class User extends ModuleTemplate{ 
 
     private String userName;
     private String password;
@@ -25,29 +26,6 @@ public class User {
     private Address address;
     private ArrayList<Role> roles;
 
-    /**
-     * Indicates if the object is populated from database or from user input.
-     * isNew becomes true if the object is populated from user input.
-     */
-    private boolean isNew;
-    /**
-     * Indicates if the fields of the object are changed using setter methods.
-     * Modified true if one of the setter methods is called. The field doesn't
-     * matter if the isNew field is set to true;
-     */
-    private boolean modified;
-
-    /**
-     * Indicates if the object is validated. validated becomes true if the
-     * validate() method is called.
-     */
-    private boolean validated = false;
-    /**
-     * Indicates if the current object is valid or not. valid is set to true if
-     * the objects fields are all valid. The value of this field does not matter
-     * if validated is false;
-     */
-    private boolean valid = false;
 
     public User() {
     }
@@ -72,7 +50,7 @@ public class User {
         this.address = address;
         this.roles = new ArrayList<>();
 
-        this.isNew = true;
+        this.setNew(true);
     }
 
     /**
@@ -92,7 +70,7 @@ public class User {
         this.password = un.password;
         this.address = un.address;
         this.coc = un.coc;
-        this.isNew = false;
+        this.setNew(false);
     }
 
     /**
@@ -106,17 +84,18 @@ public class User {
      * @throws eitex.sas.user.UserFieldException
      * @return
      */
+    @Override
     public boolean save(String userName) throws UserFieldException {
         if (!isValidated()) {
             this.validate();
         }
         try {
             if (this.isValid()) {
-                if (isNew) {
+                if (isNew()) {
                     if (address.save(userName)) {
                         return UserModel.saveToDataBase(this, userName);
                     }
-                } else if (modified) {
+                } else if (isModified()) {
                     if (address.save(userName)) {
                         return UserModel.updateDataBase(this, userName);
                     }
@@ -129,18 +108,13 @@ public class User {
     }
 
     /**
-     * Validates the objects fields. It performs a check to all fields. this
-     * method sets validated fields to true. If there is a wrong field
-     * eitex.sas.user.UserFieldException is thrown with set of boolean fields to
-     * indicate which field contains error. All fields are required and are
-     * always validated. Other fields are validated only if they exist.
-     *
      * @throws eitex.sas.user.UserFieldException
      * @return
      */
+    @Override
     public boolean validate() throws UserFieldException {
-        this.validated = true;
-        this.valid = false;
+        this.setValidated(true);
+        this.setValid(false);
         boolean errorFound = false;
 
         UserFieldException ex = new UserFieldException();
@@ -150,7 +124,7 @@ public class User {
             ex.setUserNameError(true);
         }
 
-        if (!isNew) {
+        if (!isNew()) {
              if (password == null || password.matches(".*[><=-].*") || (password.length() < 3 && !password.isEmpty())) {
                 errorFound = true;
                 ex.setPasswordError(true);
@@ -200,47 +174,22 @@ public class User {
             throw ex;
         }
 
-        this.valid = true;
+        this.setValid(true);
         return true;
     }
 
-    /**
-     * Indicates if the current object is valid or not. isValid() returns to
-     * true if the objects fields are all valid. The value returned does not
-     * matter if isValidated() returned false;
-     *
-     * @return
-     */
-    public boolean isValid() {
-        return this.valid;
-    }
-
-    /**
-     * Indicates if the object is validated. isValidated() returns true if the
-     * validate() method is called.
-     *
-     * @return
-     */
-    public boolean isValidated() {
-        return this.validated;
-    }
-
-    /**
-     * Delete the user in the database that this object represents.
-     *
-     * @param userName
-     * @return
-     */
+    @Override
     public boolean delete(String userName) {
-        if (this.isNew) {
+        if (this.isNew()) {
             return false;
         } else {
             return UserModel.delete(this, userName);
         }
     }
     
+    @Override
     public boolean recover(String userName){
-         if (this.isNew) {
+         if (this.isNew()) {
             return false;
         } else {
             return UserModel.recover(this, userName);
@@ -361,16 +310,8 @@ public class User {
 
     public void setUserName(String userName) {
         this.userName = userName;
-        this.modified = true;
-        this.validated = false;
-    }
-
-    void setIsNew(boolean isNew) {
-        this.isNew = isNew;
-    }
-
-    void setModified(boolean modified) {
-        this.modified = modified;
+        this.setModified(true);
+        this.setValidated(false);
     }
 
     public String getPassword() {
@@ -382,8 +323,8 @@ public class User {
             return;
         }
         this.password = password;
-        this.modified = true;
-        this.validated = false;
+        this.setModified(true);
+        this.setValidated(false);
     }
 
     public String getFirstName() {
@@ -392,8 +333,8 @@ public class User {
 
     public void setFirstName(String firstName) {
         this.firstName = firstName;
-        this.modified = true;
-        this.validated = false;
+        this.setModified(true);
+        this.setValidated(false);
     }
 
     public String getLastName() {
@@ -402,8 +343,8 @@ public class User {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
-        this.modified = true;
-        this.validated = false;
+        this.setModified(true);
+        this.setValidated(false);
     }
 
     public CoC getCoc() {
@@ -412,8 +353,8 @@ public class User {
 
     public void setCoc(CoC coc) {
         this.coc = coc;
-        this.modified = true;
-        this.validated = false;
+        this.setModified(true);
+        this.setValidated(false);
     }
 
     public Address getAddress() {
@@ -424,8 +365,8 @@ public class User {
         int id = this.address.getId();
         this.address = address;
         this.address.setId(id);
-        this.modified = true;
-        this.validated = false;
+        this.setModified(true);
+        this.setValidated(false);
     }
 
     public ArrayList<Role> getRoles() {

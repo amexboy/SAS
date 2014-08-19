@@ -1,7 +1,5 @@
 package eitex.sas.category;
 
-import eitex.sas.address.Address;
-import eitex.sas.coc.CoC;
 import eitex.sas.common.ExceptionLogger;
 import eitex.sas.common.ModuleTemplate;
 import eitex.sas.common.NotFoundException;

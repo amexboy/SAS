@@ -157,5 +157,4 @@ public abstract class ModuleTemplate {
     public void setModified(boolean modified) {
         this.modified = modified;
     }
-
 }

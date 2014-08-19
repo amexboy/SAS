@@ -181,7 +181,7 @@ public class RoleActions extends HttpServlet {
         for (Role c : roleFromModel) {
             try {
                 Role role = new Role(c.getRoleCode());
-                role.setIsNew(false);
+                role.setNew(false);
                 if (role.delete(loggedInUser)) {
                     values.add(Json.createObjectBuilder()
                             .add("error", false)
@@ -212,7 +212,7 @@ public class RoleActions extends HttpServlet {
         JsonArrayBuilder values = Json.createArrayBuilder();
         try {
             Role role = new Role(model);
-            role.setIsNew(false);
+            role.setNew(false);
             if (role.recover(loggedInUser)) {
                 values.add(Json.createObjectBuilder()
                         .add("error", false)
