@@ -8,7 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import javax.ws.rs.NotFoundException;
+import eitex.sas.common.NotFoundException;
 
 /**
  * A model class with static fields to perform database actions of Unit class.
@@ -75,10 +75,13 @@ public class UnitModel {
      */
     static boolean delete(Unit unit, String deletedBy) {
         try (Connection con = ServerConnection.getConnection()) {
-            CallableStatement ps = con.prepareCall("EXECUTE deleteUnit ?, ?");
+            CallableStatement ps = con.prepareCall(
+                    "UPDATE Unit "
+                    + "SET deleted = 1, updatedBy = ? "
+                    + "WHERE unitCode = ? ");
 
-            ps.setString(1, unit.getUnitCode());
-            ps.setString(2, deletedBy);
+            ps.setString(1, deletedBy);
+            ps.setString(2, unit.getUnitCode());
 
             int eu = ps.executeUpdate();
             con.close();
@@ -88,7 +91,32 @@ public class UnitModel {
         }
         return false;
     }
+/**
+     * Recovers the database entry that is represented by the first parameter
+     * unit after it is deleted.
+     *
+     * @param unit
+     * @param deletedBy
+     * @return
+     */
+    static boolean recover(Unit unit, String deletedBy) {
+         try (Connection con = ServerConnection.getConnection()) {
+            CallableStatement ps = con.prepareCall(
+                    "UPDATE Unit "
+                    + "SET deleted = 0, updatedBy = ? "
+                    + "WHERE unitCode = ? ");
 
+            ps.setString(1, deletedBy);
+            ps.setString(2, unit.getUnitCode());
+
+            int eu = ps.executeUpdate();
+            con.close();
+            return eu > 0;
+        } catch (SQLException ex) {
+            ExceptionLogger.log(ex);
+        }
+        return false;
+    }
     /**
      * Gets fields of a unit from database and constructs an Unit object. This
      * method accesses the database and gets a unit using unitCode of the unit.
@@ -100,7 +128,10 @@ public class UnitModel {
      */
     static Unit getUnit(String unitCode) throws NotFoundException {
         try (Connection con = ServerConnection.getConnection()) {
-            CallableStatement cs = con.prepareCall("getUnit ? ");
+            CallableStatement cs = con.prepareCall(
+                    " SELECT * "
+                    + "FROM Unit "
+                    + "WHERE unitCode = ? ");
             cs.setString(1, unitCode);
 
             ResultSet rs = cs.executeQuery();
@@ -114,9 +145,9 @@ public class UnitModel {
                 throw new NotFoundException();
             }
 
-        } catch (SQLException | UnitFieldException ex) {
+        } catch (SQLException ex) {
             ExceptionLogger.log(ex);
-            throw new NotFoundException();
+            throw new NotFoundException("The unit you requested was not found in the database.");
         }
     }
 
@@ -126,11 +157,13 @@ public class UnitModel {
      *
      * @return
      */
-    static java.util.ArrayList<Unit> getAllUnits() {
+    static java.util.ArrayList<Unit> getAllUnits(boolean nonDeleted) {
         ArrayList<Unit> units = new ArrayList<>();
         try (Connection con = ServerConnection.getConnection()) {
             Statement st = con.createStatement();
-            ResultSet rs = st.executeQuery("EXECUTE getAllUnit");
+            ResultSet rs = st.executeQuery(
+                    "SELECT * FROM Unit WHERE "
+                    + " deleted " + (nonDeleted ? "<> 1" : " = 1"));
 
             while (rs.next()) {
                 String unitCode = rs.getString("unitCode");
@@ -140,7 +173,7 @@ public class UnitModel {
                 units.add(new Unit(unitCode, unitName, unitDisc));
             }
 
-        } catch (SQLException | UnitFieldException ex) {
+        } catch (SQLException ex) {
             ExceptionLogger.log(ex);
         }
         return units;

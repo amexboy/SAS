@@ -1,6 +1,16 @@
 package eitex.sas.unit;
 
-import javax.ws.rs.NotFoundException;
+import eitex.sas.unit.*;
+import eitex.sas.common.ExceptionLogger;
+import eitex.sas.common.ModuleTemplate;
+import eitex.sas.common.NotFoundException;
+import eitex.sas.user.User;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.json.Json;
+import javax.json.stream.JsonParser;
 
 /**
  * Represents a Unit. This class contains fields to represent a measurement
@@ -8,90 +18,62 @@ import javax.ws.rs.NotFoundException;
  *
  * @author Amanu
  */
-public class Unit {
+public class Unit extends ModuleTemplate{
 
     private String unitCode;
     private String unitName;
     private String unitDisc;
 
-    /**
-     * Indicates if the object is populated from database or from user input.
-     * isNew becomes true if the object is populated from user input.
-     */
-    private boolean isNew;
-    /**
-     * Indicates if the fields of the object are changed using setter methods.
-     * Modified true if one of the setter methods is called. The field doesn't
-     * matter if the isNew field is set to true;
-     */
-    private boolean modified;
-
-    /**
-     * Indicates if the object is validated. validated becomes true if the
-     * validate() method is called.
-     */
-    private boolean validated = false;
-    /**
-     * Indicates if the current object is valid or not. valid is set to true if
-     * the objects fields are all valid. The value of this field does not matter
-     * if validated is false;
-     */
-    private boolean valid = false;
+    
 
     public Unit() {
     }
 
     /**
-     * Constructs an object of Unit. This constructor shall be used if values of
-     * all the fields are known.
+     * Constructs an object of Unit. This constructor shall be used if
+     * values of all the fields are known.
      *
      * @param unitCode
      * @param unitName
      * @param unitDisc
-     * @throws eitex.sas.unit.UnitFieldException
      */
-    public Unit(String unitCode, String unitName, String unitDisc) throws UnitFieldException {
+    public Unit(String unitCode, String unitName, String unitDisc) {
         this.unitCode = unitCode;
         this.unitName = unitName;
         this.unitDisc = unitDisc;
-        this.isNew = true;
-        this.valid = this.validate();
+        this.setNew(true);
     }
 
     /**
-     * Constructs an object of Unit class getting the fields from database. This
-     * constructor should be used when the unitCode is known and to get the rest
-     * from database.
+     * Constructs an object of Unit class getting the fields from database.
+     * This constructor should be used when the unitCode is known and to get
+     * the rest from database.
      *
      * @param unitCode
+     * @throws eitex.sas.common.NotFoundException
      */
     public Unit(String unitCode) throws NotFoundException {
         this.unitCode = unitCode;
         Unit un = UnitModel.getUnit(unitCode);
         this.unitName = un.unitName;
         this.unitDisc = un.unitDisc;
-        this.isNew = false;
+        this.setNew(false);
     }
 
     /**
-     * Saves the changes of this object to database. This method either adds a
-     * new entry in the data base or updates the existing according to isNew
-     * field. If the object is validated and is valid the save is executed right
-     * away. Else the validate() method is called and execution continues goes
-     * accordingly.
-     *
-     * @param userName, the user that initiated the action
+     * @param userName
      * @throws eitex.sas.unit.UnitFieldException
-     * @return
+     * @return boolean to indicate the success of the operation.
      */
+    @Override
     public boolean save(String userName) throws UnitFieldException {
         if (!isValidated()) {
             this.validate();
         }
         if (this.isValid()) {
-            if (isNew) {
+            if (isNew()) {
                 return UnitModel.saveToDataBase(this, userName);
-            } else if (modified) {
+            } else if (isModified()) {
                 return UnitModel.updateDataBase(this, userName);
             }
         }
@@ -99,18 +81,13 @@ public class Unit {
     }
 
     /**
-     * Validates the objects fields. It performs a check to all fields. this
-     * method sets validated fields to true. If there is a wrong field
-     * eitex.sas.unit.UnitFieldException is thrown with set of boolean fields to
-     * indicate which field contains error. unitCode, and unitName are required
-     * and are always validated. Other fields are validated only if they exist.
-     *
      * @throws eitex.sas.unit.UnitFieldException
-     * @return
+     * @return returns a boolean to indicate if the object is valid or not.
      */
+    @Override
     public boolean validate() throws UnitFieldException {
-        this.validated = true;
-        this.valid = false;
+        this.setValidated(true);
+        this.setValid(false);
         boolean errorFound = false;
 
         UnitFieldException ex = new UnitFieldException();
@@ -126,62 +103,120 @@ public class Unit {
         }
 
         if (unitDisc != null && !unitDisc.isEmpty()) {
-            if (unitDisc.matches(".*[><=&%-].*")) {
-                errorFound = true;
-                ex.setUnitDiscError(true);
-            }
+//            if (unitDisc.matches(".*[><=&%-].*")) {
+//                errorFound = true;
+//                ex.setUnitDiscError(true);
+//            }
         }
 
         if (errorFound) {
             throw ex;
         }
-        
-        this.valid = true;
+
+        this.setValid(true);
+        this.setValidated(true);
         return true;
     }
 
-    /**
-     * Indicates if the current object is valid or not. isValid() returns to
-     * true if the objects fields are all valid. The value returned does not
-     * matter if isValidated() returned false;
-     *
-     * @return
-     */
-    public boolean isValid() {
-        return this.valid;
-    }
-
-    /**
-     * Indicates if the object is validated. isValidated() returns true if the
-     * validate() method is called.
-     *
-     * @return
-     */
-    public boolean isValidated() {
-        return this.validated;
-    }
 
     /**
      * Delete the unit in the database that this object represents.
      *
      * @param userName
-     * @return
+     * @return returns a boolean to indicate if the object is valid or not.
      */
+    @Override
     public boolean delete(String userName) {
-        if (this.isNew) {
-            throw new NotFoundException();
+        if (this.isNew() || !this.isModified()) {
+            return false;
         } else {
             return UnitModel.delete(this, userName);
         }
     }
 
     /**
-     * Returns all units that are registered in the database. If there is no unit 
-     * registered in the database this method returns an empty ArrayList.
-     * @return
+     * Recover the unit in the database that this object represents. This method
+     * is used to recover entries of the database after deletion.
+     *
+     * @param userName
+     * @return returns a boolean to indicate if the object is valid or not.
      */
-    public static java.util.ArrayList<Unit> getAllUnits(){
-        return UnitModel.getAllUnits();
+    @Override
+    public boolean recover(String userName) {
+        if (this.isNew()) {
+            return false;
+        } else {
+            return UnitModel.recover(this, userName);
+        }
+    }
+
+    /**
+     * Returns all Entries of this class that are registered in the database.
+     *
+     * @return returns all categories
+     */
+    public static java.util.ArrayList<Unit> getAll() {
+        return UnitModel.getAllUnits(true);
+    }
+
+    /**
+     * Returns all Entries of this class that are registered in the database.
+     *
+     * @return returns all deleted categories
+     */
+    public static java.util.ArrayList<Unit> getAllDeleted() {
+        return UnitModel.getAllUnits(false);
+    }
+
+    public static ArrayList<Unit> createUnitFormJSON(String model) {
+
+        final ArrayList<Unit> categories = new ArrayList<>();
+        class UnitFromJsonModel {
+
+            public String unitCode = "", unitName = "", unitDisc = "";
+            public String json;
+            public JsonParser p;
+
+            public UnitFromJsonModel ObjectFromJSON(UnitFromJsonModel model) {
+                switch (p.next()) {
+                    case END_ARRAY:
+                        return model;
+                    case END_OBJECT:
+                        categories.add(new Unit(unitCode, unitName, unitDisc));
+                        break;
+                    case KEY_NAME:
+                        String keyName = p.getString();
+                        JsonParser.Event next = p.next();
+                        try {
+                            if (next == JsonParser.Event.VALUE_STRING) {
+                                model.getClass().getField(keyName).set(model, p.getString());
+                            }  else if(next == JsonParser.Event.VALUE_TRUE) {
+                                model.getClass().getField(keyName).set(model, true);
+                            } else if(next == JsonParser.Event.VALUE_FALSE) {
+                                model.getClass().getField(keyName).set(model, false);
+                            }else {
+                                model.getClass().getField(keyName).set(model, null);
+                            }
+
+//                            Logger.getLogger(User.class.getName()).log(Level.SEVERE, "key name " + keyName);
+//                            Logger.getLogger(User.class.getName()).log(Level.SEVERE, "key value " + model.getClass().getField(keyName).get(model));
+                        } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException ex) {
+                            ExceptionLogger.log(ex);
+                            Logger.getLogger(User.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+
+                }
+                return ObjectFromJSON(model);
+            }
+
+            public UnitFromJsonModel(String json) {
+                this.json = json;
+                p = Json.createParser(new StringReader(json));
+                ObjectFromJSON(this);
+            }
+        }
+        UnitFromJsonModel user = new UnitFromJsonModel(model);
+        return categories;
     }
 
 //<editor-fold defaultstate="collapsed" desc="Setter & Getter">
@@ -195,8 +230,8 @@ public class Unit {
 
     public void setUnitName(String unitName) {
         this.unitName = unitName;
-        this.modified = true;
-        this.validated = false;
+        this.setModified(true);
+        this.setValidated(false);
     }
 
     public String getUnitDisc() {
@@ -205,9 +240,11 @@ public class Unit {
 
     public void setUnitDisc(String unitDisc) {
         this.unitDisc = unitDisc;
-        this.modified = true;
-        this.validated = false;
+        this.setModified(true);
+        this.setValidated(false);
     }
+      
+    
 //</editor-fold>
 
 }
